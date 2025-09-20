@@ -5,15 +5,11 @@ from .config import DISCOVERY_PORT
 def get_local_ip():
     """Gets the local IP address of the machine."""
     try:
-        # Create a dummy socket to connect to an external server
-        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        s.settimeout(0)
-        s.connect(('10.254.254.254', 1)) # Doesn't have to be reachable
-        ip = s.getsockname()[0]
+        # Resolve the hostname to an IP address
+        hostname = socket.gethostname()
+        ip = socket.gethostbyname(hostname)
     except Exception:
         ip = '127.0.0.1'
-    finally:
-        s.close()
     return ip
 
 def scan_network(local_ip):
