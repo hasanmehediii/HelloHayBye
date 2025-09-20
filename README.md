@@ -1,4 +1,4 @@
-# LAN Video and Audio Streaming Application
+# HelloHayBye
 
 This project implements a real-time video and audio streaming application designed for multiple clients to communicate within the same local area network (LAN).
 
