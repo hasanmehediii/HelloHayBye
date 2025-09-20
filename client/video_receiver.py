@@ -9,6 +9,7 @@ class VideoReceiver:
     def __init__(self, frame_callback):
         self.port = VIDEO_PORT
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        self.sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         self.sock.bind(('0.0.0.0', self.port))
         self.running = False
         self.frame_buffer = {} # To reassemble fragmented frames
