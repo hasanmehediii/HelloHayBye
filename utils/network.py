@@ -24,12 +24,15 @@ def scan_network(local_ip):
     def check_host(ip):
         try:
             with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-                s.settimeout(0.1) # Quick timeout for non-responsive hosts
+                s.settimeout(0.5) # Quick timeout for non-responsive hosts
                 if s.connect_ex((ip, DISCOVERY_PORT)) == 0:
-                    hostname = socket.gethostbyaddr(ip)[0]
+                    try:
+                        hostname = socket.gethostbyaddr(ip)[0]
+                    except socket.herror:
+                        hostname = ip
                     online_users.append({"ip": ip, "hostname": hostname})
-        except (socket.herror, socket.timeout):
-            # Hostname could not be resolved or host timed out
+        except socket.timeout:
+            # Host timed out
             pass
 
     for i in range(1, 255):
