@@ -3,3 +3,5 @@ numpy
 pyaudio
 SpeechRecognition
 Pillow
+websockets
+utils
