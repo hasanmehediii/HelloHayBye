@@ -1,65 +1,16 @@
 import socket
 import threading
-from .config import DISCOVERY_PORT
+import time
+
+from utils.config import SIGNALING_PORT
 
 def get_local_ip():
-    """Gets the local IP address of the machine."""
     s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     try:
-        # doesn't even have to be reachable
-        s.connect(('10.255.255.255', 1))
+        s.connect(("8.8.8.8", 80))
         IP = s.getsockname()[0]
-    except Exception:
+    except:
         IP = '127.0.0.1'
     finally:
         s.close()
     return IP
-
-def scan_network(local_ip):
-    """Scans the local network for other clients running the application."""
-    subnet = '.'.join(local_ip.split('.')[:-1])
-    online_users = []
-    threads = []
-
-    def check_host(ip):
-        try:
-            with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-                s.settimeout(0.5) # Quick timeout for non-responsive hosts
-                if s.connect_ex((ip, DISCOVERY_PORT)) == 0:
-                    try:
-                        hostname = socket.gethostbyaddr(ip)[0]
-                    except socket.herror:
-                        hostname = ip
-                    online_users.append({"ip": ip, "hostname": hostname})
-        except socket.timeout:
-            # Host timed out
-            pass
-
-    for i in range(1, 255):
-        ip_to_check = f"{subnet}.{i}"
-        if ip_to_check != local_ip:
-            thread = threading.Thread(target=check_host, args=(ip_to_check,))
-            threads.append(thread)
-            thread.start()
-
-    for thread in threads:
-        thread.join()
-
-    return online_users
-
-def start_discovery_server():
-    """Starts a server to listen for discovery probes."""
-    def discovery_server():
-        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-            s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-            try:
-                s.bind(("0.0.0.0", DISCOVERY_PORT))
-                s.listen()
-                while True:
-                    conn, addr = s.accept()
-                    conn.close()
-            except OSError as e:
-                print(f"Error starting discovery server: {e}")
-
-    thread = threading.Thread(target=discovery_server, daemon=True)
-    thread.start()

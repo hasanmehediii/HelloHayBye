@@ -4,4 +4,3 @@ pyaudio
 SpeechRecognition
 Pillow
 websockets
-utils

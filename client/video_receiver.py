@@ -1,19 +1,23 @@
 import cv2
 import socket
 import numpy as np
+import threading
 
 from utils.codec import decode_frame
 from utils.config import VIDEO_PORT, MAX_PACKET_SIZE
 
 class VideoReceiver:
     def __init__(self, frame_callback):
-        self.port = VIDEO_PORT
-        self.sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        self.sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-        self.sock.bind(('0.0.0.0', self.port))
-        self.running = False
         self.frame_buffer = {} # To reassemble fragmented frames
         self.frame_callback = frame_callback
+        self.port_ready = threading.Event()
+        self.running = False
+
+        self.sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        self.sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        self.sock.bind(('0.0.0.0', 0))
+        _, self.port = self.sock.getsockname()
+        self.port_ready.set()
 
     def start(self):
         self.running = True
@@ -22,6 +26,7 @@ class VideoReceiver:
         while self.running:
             try:
                 packet, addr = self.sock.recvfrom(MAX_PACKET_SIZE)
+                # print(f"Received video packet from {addr}") # Too verbose, enable if needed
                 
                 sender_ip = addr[0]
                 if sender_ip not in self.frame_buffer:
@@ -32,9 +37,15 @@ class VideoReceiver:
                 if len(packet) < MAX_PACKET_SIZE:
                     full_frame_bytes = self.frame_buffer.pop(sender_ip, None)
                     if full_frame_bytes:
+                        # print(f"Reassembled full frame from {sender_ip}, size: {len(full_frame_bytes)}")
                         frame = decode_frame(full_frame_bytes)
-                        if frame is not None and self.frame_callback:
-                            self.frame_callback(frame)
+                        if frame is not None:
+                            # print(f"Decoded frame from {sender_ip}")
+                            if self.frame_callback:
+                                self.frame_callback(frame)
+                                # print(f"Invoked frame_callback for {sender_ip}")
+                        else:
+                            print(f"Failed to decode frame from {sender_ip}")
 
             except socket.timeout:
                 continue
